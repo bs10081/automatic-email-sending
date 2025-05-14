@@ -1,141 +1,114 @@
-# Grade Notification Email Sender
+# 自動化課程證書寄送系統
 
-A Python script for automatically sending grade notifications to students via email.
+一個用於自動化寄送課程證書（或成績單）給學員的 Python 腳本，支援批量寄送、測試模式、證書自動附加、資料驗證與詳細發送統計。
 
-## Features
-- Reads student data from Excel files
-- Sends personalized emails with grade information
-- Supports SSL/TLS encryption
-- Includes error handling and sending statistics
-- Configurable SMTP settings via config.ini
+## 主要功能
+- 從 Excel 讀取學員聯絡資料
+- 根據學員姓名自動附加對應 PDF 證書
+- 支援測試模式（所有信件內容都寄到 config.ini 的測試信箱）
+- 支援 SSL/TLS 郵件傳送
+- 詳細錯誤處理與發送統計
+- SMTP 設定可於 config.ini 靈活調整
+- 支援多課程、多資料夾切換（只需修改 main.py 常數）
 
-## Requirements
+## 需求套件
 - Python 3.6+
 - pandas >= 2.1.0
 - openpyxl >= 3.1.2
 - configparser >= 6.0.0
 
-## Installation
-1. Clone the repository
+## 安裝方式
+1. 下載本專案
 ```bash
 git clone https://github.com/bs10081/autoSentMail.git
 cd autoSentMail
 ```
-
-2. Install required packages:
+2. 安裝依賴
 ```bash
 pip install -r requirements.txt
 ```
 
-## Configuration
-Create a `config.ini` file in the script directory:
+## 設定說明
+請在腳本目錄下建立 `config.ini`：
 ```ini
 [SMTP]
-server = your.smtp.server
+server = smtp.example.com
 port = 465
 username = your_username
 password = your_password
-sender_email = your_email@domain.com
+sender_email = sender@example.com
 use_tls = True
+
+[TEST]
+recipient_email = test@example.com
+# recipient_name 不再需要，測試模式下會自動遍歷所有學員
+enable_test_mode = True
 ```
 
-## File Structure
+## 檔案結構範例
 ```
-grade-notification-sender/
+autoSentMail/
 ├── main.py
 ├── config.ini
 ├── requirements.txt
 ├── README.md
-├── .gitignore
 └── data/
-    └── your_grade_file.xlsx
+    ├── 0419 聯絡資料.xlsx
+    ├── 0419 證書/
+    │   ├── 課程證書-王小明.pdf
+    │   └── ...
+    └── ...
 ```
 
-## Data File Format
-Your Excel file should contain the following columns:
-- 學號 (Student ID)
-- 姓名 (Name)
-- Grade columns as needed
+## 資料檔案格式
+聯絡資料 Excel 檔案需包含下列欄位：
+- 姓名
+- 電子郵件
 
-Example:
-```
-學號    姓名    作業1    作業2    期中考
-110001  張小明   85      90      88
-110002  李小華   92      88      85
-```
+證書 PDF 檔案需以「課程證書-學員姓名.pdf」命名，並放在對應資料夾下。
 
-## Usage
-1. Prepare your Excel file in the `data/` directory
-
-2. Update the following variables in `main.py`:
+## 使用方式
+1. 準備好聯絡資料 Excel 及證書 PDF 檔案，放入 `data/` 目錄下。
+2. 修改 `main.py` 中的課程名稱、聯絡資料與證書目錄常數，例如：
 ```python
-file_path = 'data/your_grade_file.xlsx'  # Your Excel file path
-email = f's{int(student_id)}@YOUR_DOMAIN'  # Your email domain
+COURSE_NAME = "2025 AI 實戰課程"
+CERTIFICATE_DIR = Path("data/0419 證書")
+CONTACT_FILE = Path("data/0419 聯絡資料.xlsx")
 ```
-
-3. Run the script:
+3. 執行腳本：
 ```bash
 python main.py
 ```
 
-## Output Example
-```
-郵件寄送成功: s110001@domain.com
-郵件寄送成功: s110002@domain.com
+## 測試模式
+- 將 `config.ini` 的 `[TEST] enable_test_mode` 設為 `True`，並指定 `recipient_email`。
+- 腳本會遍歷所有聯絡資料，將每一筆內容（學員姓名、證書）都寄到同一個測試信箱，方便驗證所有功能。
+- 設為 `False` 則會依照聯絡資料逐一寄送給每位學員。
 
-發送統計:
-成功發送: 2
+## 執行結果範例
+```
+[測試模式] 準備發送郵件給 (Excel 第 2 行): 測試學員 (實際寄送至 test@example.com) ...
+郵件成功寄送至: test@example.com
+...
+
+============================== 發送統計 ==============================
+成功發送: 10
 失敗發送: 0
+略過記錄 (資料不完整或無證書): 1
+
+--- 郵件發送處理結束 ---
 ```
 
-If there are failures:
-```
-失敗清單:
-s110003@domain.com
-學號: 110004
-```
+## 常見問題
+- SMTP 連線錯誤：請檢查 SMTP 設定與 SSL 憑證
+- Excel 檔案找不到：請確認檔案路徑與檔名
+- 學員資料或證書缺失：腳本會自動跳過並記錄於統計
 
-## Error Handling
-The script handles various error scenarios:
-- Missing configuration file
-- Excel file reading errors
-- SMTP connection issues
-- Invalid student data
-- Email sending failures
+## 最佳實踐
+- 先以測試模式驗證所有流程
+- config.ini 請勿上傳至公開倉庫
+- 定期備份學員資料與證書
+- 執行完畢請檢查統計結果
 
-## Security Features
-- SSL/TLS encryption for email transmission
-- Credentials stored in separate config file
-- Multiple SMTP connection fallback methods
-- No sensitive data in code
-
-## Best Practices
-1. Always test with a small sample first
-2. Keep the config.ini file secure and never commit it to version control
-3. Regularly backup your grade data
-4. Check the sending statistics after completion
-
-## Troubleshooting
-Common issues and solutions:
-
-1. SMTP Connection Error
-```
-郵件寄送失敗: example@domain.com, 原因: [SSL: CERTIFICATE_VERIFY_FAILED]
-```
-Solution: Check your SMTP server settings and SSL certificate
-
-2. File Not Found
-```
-讀取 Excel 檔案失敗: [Errno 2] No such file or directory
-```
-Solution: Verify the Excel file path and name
-
-## Contributing
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## 授權
+MIT License

@@ -1,0 +1,11 @@
+[SMTP]
+server = smtp.example.com
+port = 465
+username = your_username@example.com
+password = your_app_password_here
+sender_email = your_username@example.com
+use_tls = True
+[TEST]
+recipient_name = TestUser
+recipient_email = test@example.com
+enable_test_mode = False
