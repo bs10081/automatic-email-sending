@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.ArrayList;
 
 // Apache POI 相關
 import org.apache.poi.ss.usermodel.Cell;
@@ -44,11 +45,14 @@ import org.ini4j.Ini;
 public class JavaMail {
     // CONFIG PATHS
     private static final String CONFIG_FILE = "config.ini";
-    private static final String CONTACT_EXCEL = "data/0419 聯絡資料.xlsx";
-    private static final String CERT_DIR = "data/0419 證書";
-    private static final String COURSE_NAME = "2025 未來造浪 AI Studio";
+    private static final String CONTACT_EXCEL = "data/demo學員名單.xlsx";
+    private static final String CERT_DIR = "data/證書";
+    private static final String COURSE_NAME = "進階程式設計";
 
     public static void main(String[] args) {
+        List<String> successList = new ArrayList<>();
+        List<String> failList = new ArrayList<>();
+        List<String> skipList = new ArrayList<>();
         try {
             // 1. 讀取 INI 設定
             Ini ini = new Ini(new File(CONFIG_FILE));
@@ -89,33 +93,65 @@ public class JavaMail {
             Map<String, Path> certMap = loadCertificates(CERT_DIR);
 
             int success = 0, fail = 0, skip = 0;
+            System.out.println("=== 開始寄送郵件 ===");
             for (Map.Entry<String, String> entry : contacts.entrySet()) {
                 String name = entry.getKey();
                 String email = entry.getValue();
                 if (name.isEmpty() || email.isEmpty()) {
+                    String skipMsg = String.format("姓名: '%s', Email: '%s'", name, email);
+                    System.out.printf("[跳過] 姓名或Email為空 - %s\\n", skipMsg);
+                    skipList.add(String.format("姓名或Email為空: %s", skipMsg));
                     skip++; continue;
                 }
                 Path cert = certMap.get(name);
                 if (cert == null) {
+                    String skipMsg = String.format("姓名: %s, Email: %s", name, email);
+                    System.out.printf("[跳過] 找不到證書 - %s\\n", skipMsg);
+                    skipList.add(String.format("找不到證書: %s", skipMsg));
                     skip++; continue;
                 }
                 String to = testMode ? testEmail : email;
                 String subject = String.format("「%s」課程證書寄發通知", COURSE_NAME)
                         + (testMode ? " (測試模式)" : "");
                 String body = buildBody(name, testMode, testEmail);
+
+                System.out.printf("[準備寄送] 收件人: %s (%s), 證書: %s\\n", name, to, cert.getFileName().toString());
+
                 try {
                     send(session, senderEmail, to, subject, body, cert);
+                    String successMsg = String.format("收件人: %s (%s)", name, to);
+                    System.out.printf("[成功] %s\\n", successMsg);
+                    successList.add(successMsg);
                     success++;
                 } catch (Exception e) {
+                    String errorMsg = String.format("收件人: %s (%s), 錯誤: %s", name, to, e.getMessage());
+                    System.out.printf("[失敗] %s\\n", errorMsg);
+                    failList.add(errorMsg);
                     fail++;
-                    e.printStackTrace();
+                    // e.printStackTrace(); // 可選擇是否印出完整錯誤堆疊
                 }
                 // wait interval
                 Thread.sleep(2000);
             }
 
-            System.out.printf("完成：成功 %d / 失敗 %d / 跳過 %d\n", success, fail, skip);
+            System.out.println("\\n=== 寄送結果總結 ===");
+            System.out.printf("總計: 成功 %d 封 / 失敗 %d 封 / 跳過 %d 筆\\n", success, fail, skip);
+
+            if (!successList.isEmpty()) {
+                System.out.println("\\n--- 成功列表 ---");
+                successList.forEach(System.out::println);
+            }
+            if (!failList.isEmpty()) {
+                System.out.println("\\n--- 失敗列表 ---");
+                failList.forEach(System.out::println);
+            }
+            if (!skipList.isEmpty()) {
+                System.out.println("\\n--- 跳過列表 ---");
+                skipList.forEach(System.out::println);
+            }
+
         } catch (Exception e) {
+            System.err.println("[嚴重錯誤] 郵件發送主程序發生錯誤: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -161,7 +197,7 @@ public class JavaMail {
             prefix += String.format("(此為測試模式郵件，實際寄送至 %s)\n\n", testEmail);
         }
         return prefix +
-               "感謝您參加「" + COURSE_NAME + "」課程... [郵件內容略]";
+               "感謝您參加「" + COURSE_NAME + "」課程... ";
     }
 
     private static void send(Session session, String from, String to,
