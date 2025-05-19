@@ -38,7 +38,7 @@
     </dependencies>
     <build>
         <plugins>
-            <!-- 讓你可以直接用 mvn exec:java 執行 main -->
+            <!-- mvn exec:java -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
