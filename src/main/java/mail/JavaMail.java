@@ -89,7 +89,7 @@ public class JavaMail {
             // 3. 載入聯絡人資料
             Map<String, String> contacts = loadContacts(CONTACT_EXCEL);
 
-            // 4. 載入證書文件映射
+            // 4. 載入證書檔案映射
             Map<String, Path> certMap = loadCertificates(CERT_DIR);
 
             int success = 0, fail = 0, skip = 0;
